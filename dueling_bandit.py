@@ -14,11 +14,12 @@ def find_max_element(elements, rounds, duel, scale_factor=0.51, better_tiebreak=
     n = len(elements)
     duel_matrix = np.zeros((n, n))
     duel_matrix = _find_max_element(elements, rounds, duel, scale_factor, better_tiebreak, duel_matrix)
-    match_counts = np.zeros((n,))
+    coperand_scores = np.zeros((n,))
     for i in range(n):
         for j in range(n):
-            match_counts[i] += duel_matrix[i][j] + duel_matrix[j][i]
-    return elements[np.argmax(match_counts)]
+            if duel_matrix[i][j] > duel_matrix[j][i]:
+                coperand_scores[i] += 1
+    return elements[np.argmax(coperand_scores)]
 
 
 def __kl_divergence(p, q):
