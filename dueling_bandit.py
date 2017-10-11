@@ -2,18 +2,19 @@ import math
 import numpy as np
 
 
-def find_max_element(elements, rounds, duel, scale_factor=0.51, better_tiebreak=True):
+def find_max_element(elements, rounds, duel, scale_factor=0.51, better_tiebreak=True, skip_mirror_match=False):
     """
     :param elements: a list to find maximum element
     :param rounds: the number of duels during estimation
     :param duel: a noisy compare function. duel(a, b) = -1 suggests a > b, and duel(a, b) = 1 suggests a < b
     :param scale_factor:
     :param better_tiebreak: D-TS+ algorithm is used if true. if false, D-TS algorithm is used.
+    :param skip_mirror_match: do not call duel() and assign random outcome instead when mirror match is sampled.
     :return: max element estimated by D-TS(+) algorithm
     """
     n = len(elements)
     duel_matrix = np.zeros((n, n))
-    duel_matrix = _find_max_element(elements, rounds, duel, scale_factor, better_tiebreak, duel_matrix)
+    duel_matrix = _find_max_element(elements, rounds, duel, scale_factor, better_tiebreak, skip_mirror_match, duel_matrix)
     coperand_scores = np.zeros((n,))
     for i in range(n):
         for j in range(n):
@@ -29,13 +30,14 @@ def __kl_divergence(p, q):
     return d
 
 
-def _find_max_element(elements, rounds, duel, scale_factor, better_tiebreak, past_duels):
+def _find_max_element(elements, rounds, duel, scale_factor, better_tiebreak, skip_mirror_match, past_duels):
     """
     :param elements: a list to find maximum element
     :param rounds: the number of duels during estimation
     :param duel: a noisy compare function. duel(a, b) = -1 suggests a > b, and duel(a, b) = 1 suggests a < b
     :param scale_factor:
     :param better_tiebreak: D-TS+ algorithm is used if true. if false, D-TS algorithm is used.
+    :param skip_mirror_match: do not call duel() and assign random outcome instead when mirror match is sampled.
     :param past_duels: ndarray with shape (n, n). element at (i, j) is the number of element i's win against element j
     :return: tuple of (estimated max element, duel result matrix)
     """
@@ -99,7 +101,10 @@ def _find_max_element(elements, rounds, duel, scale_factor, better_tiebreak, pas
                 second_score[i] = np.random.beta(duel_history[i][first] + 1, duel_history[first][i] + 1)
         second = np.argmax(second_score)
 
-        outcome = duel(elements[first], elements[second])
+        if first == second and skip_mirror_match:
+            outcome = 1 if np.random.uniform() < 0.5 else -1
+        else:
+            outcome = duel(elements[first], elements[second])
         if outcome == 1:
             duel_history[first][second] += 1
         else:
